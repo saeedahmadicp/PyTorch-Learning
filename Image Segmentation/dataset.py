@@ -9,13 +9,9 @@ import os
 from PIL import Image
 from torch.utils.data import Dataset
 import numpy as np
-from torchvision import transforms as t
-from torch.utils.data import DataLoader
 
-TRAIN_IMG_DIR = "./data/train/"
-TRAIN_MASK_DIR = "./data/train_masks/"
-IMAGE_HEIGHT = 160  # 1280 originally
-IMAGE_WIDTH = 240  # 1918 originally
+
+
 
 class CarvanaDataset(Dataset):
     def __init__(self, image_dir, mask_dir, transform=None, transform_masks=None):

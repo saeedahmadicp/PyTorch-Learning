@@ -28,7 +28,7 @@ from utils import (
 LEARNING_RATE = 1e-4
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 16
-NUM_EPOCHS = 3
+NUM_EPOCHS = 10
 IMAGE_HEIGHT = 160  # 1280 originally
 IMAGE_WIDTH = 240  # 1918 originally
 LOAD_MODEL = False
@@ -38,25 +38,28 @@ TRAIN_MASK_DIR = "./data/train_masks/"
 
 
 
-def train_fn(loader, model, optimizer, loss_fn, scaler):
+
+def train_fn(loader, model, optimizer, loss_fn):
     #loop = tqdm(loader)
 
     for batch_idx, (data, targets) in enumerate(loader):
         if batch_idx < 300:
             data = data.to(device=DEVICE)
-            targets = targets.float().to(device=DEVICE)
+            targets = targets.to(device=DEVICE, non_blocking=True)
+
+           # print(data.device)
 
             # forward
-            with torch.cuda.amp.autocast():
-                predictions = model(data)
-                #print("Prediction shape: ", predictions.shape)
-                loss = loss_fn(predictions, targets)
+            
+            predictions = model(data)
+            #print("Prediction shape: ", predictions.shape)
+            loss = loss_fn(predictions, targets)
 
             # backward
+            
+            loss.backward()
+            optimizer.step()
             optimizer.zero_grad()
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
 
             # update tqdm loop
             #loader.set_postfix(loss=loss.item())
@@ -98,7 +101,8 @@ def main():
     
     
 
-    model = U_NET(in_channels=3, out_channels=1).to(DEVICE)
+    model = U_NET(in_channels=3, out_channels=1)
+    model.to(device=DEVICE)
     loss_fn = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
@@ -117,11 +121,11 @@ def main():
 
 
     check_accuracy(train_loader, model, device=DEVICE)
-    scaler = torch.cuda.amp.GradScaler()
+    #scaler = torch.cuda.amp.GradScaler()
 
     for epoch in range(NUM_EPOCHS):
         print("Training")
-        train_fn(train_loader, model, optimizer, loss_fn, scaler)
+        train_fn(train_loader, model, optimizer, loss_fn)
 
         print("testing")
 
